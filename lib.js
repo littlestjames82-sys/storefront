@@ -32,16 +32,33 @@ function parseCookies(req) {
   return out;
 }
 
-// ---- admin sessions (in-memory) ----
-const sessions = new Map(); // sessionId -> createdAt ms
+// ---- admin sessions (stateless, HMAC-signed; safe across serverless instances) ----
 const SESSION_COOKIE = 'sf_admin';
+const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
+let sessionSecret = null;
+function setSessionSecret(s) { sessionSecret = String(s || ''); }
 function createSession() {
-  const id = crypto.randomBytes(32).toString('hex');
-  sessions.set(id, Date.now());
-  return id;
+  const body = Buffer.from(JSON.stringify({
+    r: crypto.randomBytes(8).toString('hex'),
+    e: Date.now() + SESSION_TTL_MS,
+  })).toString('base64url');
+  const sig = crypto.createHmac('sha256', sessionSecret).update(body).digest('base64url');
+  return `${body}.${sig}`;
 }
-function validSession(id) { return !!id && sessions.has(id); }
-function destroySession(id) { sessions.delete(id); }
+function validSession(v) {
+  if (!v || !sessionSecret) return false;
+  const s = String(v);
+  const i = s.lastIndexOf('.');
+  if (i < 0) return false;
+  const body = s.slice(0, i), sig = s.slice(i + 1);
+  const expect = crypto.createHmac('sha256', sessionSecret).update(body).digest('base64url');
+  if (!timingSafeEq(sig, expect)) return false;
+  try {
+    const p = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return typeof p.e === 'number' && p.e > Date.now();
+  } catch { return false; }
+}
+function destroySession(_id) { /* stateless: logout clears the cookie */ }
 function sessionCookieHeader(id) {
   return `${SESSION_COOKIE}=${id}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`;
 }
@@ -168,6 +185,7 @@ function redirect(res, location, status = 303) {
 
 module.exports = {
   esc, slugify, parseCookies, createSession, validSession, destroySession,
+  setSessionSecret,
   sessionCookieHeader, clearSessionCookieHeader, SESSION_COOKIE, timingSafeEq,
   readBody, parseForm, digitsOnly, validPhone, telHref, smsHref,
   twilioConfigured, sendSms, reviewUrl, missedCallText, reviewRequestText,
