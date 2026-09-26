@@ -41,6 +41,13 @@ function requireAdmin(req, res) {
   return false;
 }
 
+// Absolute public base URL, proxy-aware (Netlify Functions sit behind a CDN).
+function publicBase(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim() || 'http';
+  const host = String(req.headers.host || '').split(',')[0].trim();
+  return host ? `${proto}://${host}` : '';
+}
+
 async function collectStorefrontForm(f, excludeId) {
   const services = String(f.services || '').split('\n').map((s) => s.trim()).filter(Boolean);
   let color = String(f.theme_color || '').trim();
@@ -114,6 +121,12 @@ async function route(req, res) {
       });
     }
     return sendHtml(res, T.quoteThanksPage(sf, name.split(' ')[0]));
+  }
+  if ((m = p.match(/^\/s\/([A-Za-z0-9-]+)\/review$/)) && method === 'GET') {
+    const sf = await db.getStorefrontBySlug(m[1]);
+    if (!sf || !sf.google_place_id)
+      return sendHtml(res, formErrorPage('That page does not exist.', '/'), 404);
+    return sendHtml(res, T.reviewLandingPage(sf));
   }
 
   // ---------- public API: sales-page signup -> GDS lead inbox (CORS-enabled) ----------
@@ -285,10 +298,11 @@ async function route(req, res) {
     if (!requireAdmin(req, res)) return;
     const sf = await db.getStorefront(Number(m[1]));
     if (!sf) return sendHtml(res, 'Not found', 404);
+    const reviewPageUrl = publicBase(req) + `/s/${sf.slug}/review`;
     const preview = sf.google_place_id
-      ? reviewRequestText(sf.business_name, reviewUrl(sf.google_place_id))
+      ? reviewRequestText(sf.business_name, reviewPageUrl)
       : 'Add a Google Place ID to preview the review message.';
-    return sendHtml(res, T.reviewToolsPage(sf, twilioConfigured(), null, await db.reviewsFor(sf.id), preview));
+    return sendHtml(res, T.reviewToolsPage(sf, twilioConfigured(), null, await db.reviewsFor(sf.id), preview, reviewPageUrl));
   }
   if ((m = p.match(/^\/admin\/storefronts\/(\d+)\/review-request$/)) && method === 'POST') {
     if (!requireAdmin(req, res)) return;
@@ -297,13 +311,13 @@ async function route(req, res) {
     const f = parseForm(await readBody(req));
     const name = String(f.customer_name || '').trim();
     const phone = String(f.customer_phone || '').trim();
-    const url = reviewUrl(sf.google_place_id);
-    const text = reviewRequestText(sf.business_name, url);
+    const reviewPageUrl = publicBase(req) + `/s/${sf.slug}/review`;
+    const text = reviewRequestText(sf.business_name, reviewPageUrl);
     let result;
     if (!name || !validPhone(phone)) {
       return sendHtml(res, T.reviewToolsPage(sf, twilioConfigured(),
         { mode: 'sent', ok: false, to: phone, error: 'Enter a valid name and phone number.' },
-        await db.reviewsFor(sf.id), text), 400);
+        await db.reviewsFor(sf.id), text, reviewPageUrl), 400);
     }
     if (twilioConfigured() && sf.twilio_number) {
       const r = await sendSms({ to: phone, from: sf.twilio_number, body: text });
@@ -311,9 +325,9 @@ async function route(req, res) {
       result = { mode: 'sent', ok: r.ok, to: phone, error: r.error };
     } else {
       await db.logReview(sf.id, name, phone, 'manual');
-      result = { mode: 'manual', text };
+      result = { mode: 'manual', text, to: phone };
     }
-    return sendHtml(res, T.reviewToolsPage(sf, twilioConfigured(), result, await db.reviewsFor(sf.id), text));
+    return sendHtml(res, T.reviewToolsPage(sf, twilioConfigured(), result, await db.reviewsFor(sf.id), text, reviewPageUrl));
   }
   if (p === '/admin/leads' && method === 'GET') {
     if (!requireAdmin(req, res)) return;
