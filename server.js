@@ -167,6 +167,8 @@ async function route(req, res) {
     const phone = String(f.phone || '').trim();
     const email = String(f.email || '').trim();
     const trade = String(f.trade || '').trim();
+    const serviceArea = String(f.service_area || '').trim();
+    const notes = String(f.notes || '').trim();
     if (!business) return sendJson(res, { ok: false, error: 'Please enter your business name.' }, 400);
     if (!name) return sendJson(res, { ok: false, error: 'Please enter your name.' }, 400);
     if (!validPhone(phone)) return sendJson(res, { ok: false, error: 'Please enter a valid phone number.' }, 400);
@@ -176,7 +178,9 @@ async function route(req, res) {
     const message = [
       `Business: ${business}`,
       trade && `Trade: ${trade}`,
+      serviceArea && `Service area: ${serviceArea}`,
       email && `Email: ${email}`,
+      notes && `Notes: ${notes}`,
       'Source: sales page',
     ].filter(Boolean).join('\n');
     const leadId = await db.createLead(sf.id, {
