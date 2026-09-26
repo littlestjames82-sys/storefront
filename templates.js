@@ -202,9 +202,10 @@ function leadDetailPage(lead, back, statuses) {
 </div>`);
 }
 
-function reviewToolsPage(sf, twilioOk, result, reviews, reviewLinkText) {
+function reviewToolsPage(sf, twilioOk, result, reviews, reviewLinkText, reviewPageUrl) {
   const hasPlace = !!sf.google_place_id;
   const url = hasPlace ? reviewUrl(sf.google_place_id) : '';
+  const qrUrl = reviewPageUrl || url;
   const canSms = twilioOk && !!sf.twilio_number;
   let resultHtml = '';
   if (result) {
@@ -213,9 +214,12 @@ function reviewToolsPage(sf, twilioOk, result, reviews, reviewLinkText) {
         ? `<div class="alert ok">Review request sent by SMS to ${esc(result.to)}.</div>`
         : `<div class="alert err">SMS failed: ${esc(result.error)}</div>`;
     } else {
-      resultHtml = `<div class="alert">Twilio isn't connected, so here's the message to send manually:</div>
+      const smsLink = result.to ? smsHref(result.to) + '?&body=' + encodeURIComponent(result.text) : '';
+      resultHtml = `<div class="alert">Twilio isn't connected — tap to send it from your own phone, or copy the text:</div>
 <div class="copybox" id="manualmsg">${esc(result.text)}</div>
-<div style="margin-top:8px"><button class="btn small" type="button" onclick="navigator.clipboard.writeText(document.getElementById('manualmsg').innerText)">Copy message</button></div>`;
+<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+${smsLink ? `<a class="btn small" href="${esc(smsLink)}">Text ${esc(result.to)}</a>` : ''}
+<button class="btn small gray" type="button" onclick="navigator.clipboard.writeText(document.getElementById('manualmsg').innerText)">Copy message</button></div>`;
     }
   }
   const reviewRows = reviews.map((r) => `<tr><td>${esc(r.customer_name)}</td><td>${esc(r.customer_phone)}</td>
@@ -226,9 +230,9 @@ ${resultHtml}
 <div class="card"><h2>Google review link</h2>
 ${hasPlace ? `<div class="qrwrap"><div id="qrcode"></div>
 <div><p><a href="${esc(url)}" target="_blank">${esc(url)}</a></p>
-<p class="muted">Put this link behind the "Review us on Google" button and print the QR code for job-site flyers, invoices, and the truck.</p></div></div>
+<p class="muted">Print the QR code on invoices, flyers, and the truck — it opens your branded review page. The link above goes straight to Google.</p></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>new QRCode(document.getElementById('qrcode'),{text:${JSON.stringify(url)},width:180,height:180});</script>`
+<script>new QRCode(document.getElementById('qrcode'),{text:${JSON.stringify(qrUrl)},width:180,height:180});</script>`
 : `<div class="alert">No Google Place ID set for this storefront — review links are disabled until you add one. <a href="/admin/storefronts/${sf.id}/edit">Add it in settings</a>.</div>`}
 </div>
 <div class="card"><h2>Send a review request</h2>
@@ -344,6 +348,26 @@ h1{font-size:22px;margin:12px 0 8px}p{color:#4b5563}</style></head><body>
 </body></html>`;
 }
 
+function reviewLandingPage(sf) {
+  const color = /^#[0-9a-fA-F]{6}$/.test(sf.theme_color || '') ? sf.theme_color : '#1d4ed8';
+  const url = reviewUrl(sf.google_place_id);
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Review ${esc(sf.business_name)}</title>
+<style>:root{--brand:${esc(color)}}*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;background:#f8fafc;color:#111827;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:14px;padding:34px 28px;max-width:440px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.stars{font-size:44px;letter-spacing:4px}.btn{display:inline-block;background:var(--brand);color:#fff;border-radius:10px;padding:14px 26px;font-weight:700;text-decoration:none;margin-top:14px;font-size:17px}
+h1{font-size:24px;margin:12px 0 8px}p{color:#4b5563;line-height:1.5}.foot{margin-top:22px;font-size:12px;color:#9ca3af}</style></head><body>
+<div class="card"><div class="stars">★★★★★</div>
+<h1>Enjoyed our work?</h1>
+<p>A Google review takes 30 seconds and helps our small business more than you know. Thank you!</p>
+<a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Leave a Google review</a>
+<div class="foot">${esc(sf.business_name)}${sf.phone ? ` · ${esc(sf.phone)}` : ''}<br>
+<span>Powered by <b>Storefront</b> · Ghost Developer Studio</span></div></div>
+</body></html>`;
+}
+
 function splashPage() {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Storefront · Ghost Developer Studio</title>
@@ -358,5 +382,5 @@ h1{font-size:28px}.btn{display:inline-block;background:#7c3aed;color:#fff;border
 module.exports = {
   adminShell, loginPage, dashboardPage, storefrontFormPage, leadsPage,
   leadDetailPage, reviewToolsPage, publicPage, quoteThanksPage, splashPage,
-  svcList, statusBadge,
+  reviewLandingPage, svcList, statusBadge,
 };
