@@ -1,0 +1,1 @@
+{"dependencies":{"@libsql/client":"^0.18.0"},"description":"Storefront by Ghost Developer Studio — one-page websites for trades businesses.","engines":{"node":">=20"},"name":"storefront","private":true,"scripts":{"start":"node server.js"},"version":"1.0.0"}
