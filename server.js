@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 const db = require('./db');
 const T = require('./templates');
 const {
-  esc, slugify, parseCookies, createSession, validSession, destroySession,
+  esc, slugify, parseCookies, createSession, validSession, destroySession, setSessionSecret,
   sessionCookieHeader, clearSessionCookieHeader, SESSION_COOKIE, timingSafeEq,
   readBody, parseForm, validPhone, twilioConfigured, sendSms, reviewUrl,
   missedCallText, reviewRequestText, smsAutoReplyText, postWebhook,
@@ -17,7 +17,8 @@ const {
 
 const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
-fs.mkdirSync(DATA_DIR, { recursive: true });
+// Serverless filesystems (e.g. Netlify Functions) are read-only: never crash on mkdir.
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch { /* Turso mode doesn't need it */ }
 
 // ---- admin token ----
 let ADMIN_TOKEN = process.env.ADMIN_TOKEN;
@@ -31,6 +32,7 @@ if (!ADMIN_TOKEN) {
   }
   console.log(`ADMIN_TOKEN was not set. Generated token (also saved to ${tokenFile}):\n${ADMIN_TOKEN}\n`);
 }
+setSessionSecret(ADMIN_TOKEN);
 
 function requireAdmin(req, res) {
   const cookies = parseCookies(req);
@@ -336,13 +338,15 @@ async function route(req, res) {
   return sendHtml(res, formErrorPage('Page not found.', '/'), 404);
 }
 
-const server = http.createServer((req, res) => {
+function handler(req, res) {
   route(req, res).catch((e) => {
     console.error('request error:', e);
     try { sendHtml(res, formErrorPage('Something went wrong on our end.', '/'), 500); }
     catch { try { res.end(); } catch { /* noop */ } }
   });
-});
+}
+
+const server = http.createServer(handler);
 
 async function main() {
   await db.init(DATA_DIR);
@@ -352,4 +356,10 @@ async function main() {
     console.log(`Admin: http://localhost:${PORT}/admin`);
   });
 }
-main().catch((e) => { console.error('failed to start:', e); process.exit(1); });
+
+// Exported for serverless (Netlify Functions): require() must not start listening.
+module.exports = { handler, initDb: () => db.init(DATA_DIR) };
+
+if (require.main === module) {
+  main().catch((e) => { console.error('failed to start:', e); process.exit(1); });
+}
