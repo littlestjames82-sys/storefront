@@ -1,0 +1,20 @@
+# Render Blueprint — Storefront (free tier)
+services:
+  - type: web
+    name: storefront
+    runtime: node
+    plan: free
+    buildCommand: "node --version"
+    startCommand: "node server.js"
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DATA_DIR
+        value: /tmp/storefront-data
+      # Optional — uncomment and fill in to enable real SMS:
+      # - key: TWILIO_ACCOUNT_SID
+      #   sync: false
+      # - key: TWILIO_AUTH_TOKEN
+      #   sync: false
+      # - key: OUTBOUND_WEBHOOK_URL
+      #   sync: false
