@@ -183,6 +183,7 @@ async function route(req, res) {
     const serviceArea = String(f.service_area || '').trim();
     const notes = String(f.notes || '').trim();
     const reviewBooster = [f.review_booster, f['Review Booster']].some((v) => v === true || v === 'true' || v === 'on' || v === 'yes');
+    const ghostChat = [f.ghost_chat, f['GhostChat'], f['GhostChat Inbox']].some((v) => v === true || v === 'true' || v === 'on' || v === 'yes');
     if (!business) return sendJson(res, { ok: false, error: 'Please enter your business name.' }, 400);
     if (!name) return sendJson(res, { ok: false, error: 'Please enter your name.' }, 400);
     if (!validPhone(phone)) return sendJson(res, { ok: false, error: 'Please enter a valid phone number.' }, 400);
@@ -196,6 +197,7 @@ async function route(req, res) {
       email && `Email: ${email}`,
       notes && `Notes: ${notes}`,
       reviewBooster && 'Review Booster: YES — $19/month add-on selected',
+      ghostChat && 'GhostChat Inbox: YES — $29/month add-on selected',
       'Source: sales page',
     ].filter(Boolean).join('\n');
     const leadId = await db.createLead(sf.id, {
@@ -207,7 +209,7 @@ async function route(req, res) {
         event: 'sales_signup',
         storefront: sf.slug,
         business: sf.business_name,
-        lead: { id: leadId, name, phone, business_name: business, trade, email, review_booster: reviewBooster, created_at: new Date().toISOString() },
+        lead: { id: leadId, name, phone, business_name: business, trade, email, review_booster: reviewBooster, ghost_chat: ghostChat, created_at: new Date().toISOString() },
       });
     }
     return sendJson(res, { ok: true });
