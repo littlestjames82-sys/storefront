@@ -2,6 +2,8 @@
 
 One-page websites for trades businesses — by **Ghost Developer Studio**.
 
+**Live site:** https://storefront-ghost-dev.netlify.app
+
 Storefront is the productized version of the "digital storefront bundle": a done-for-you
 one-page website for trades businesses that have none, bundled with the three things that
 make the phone ring:
@@ -15,7 +17,8 @@ Zero npm dependencies. Node.js 24 only (`node:http` + built-in `node:sqlite`).
 ## Quick start
 
 ```bash
-cd ~/workspace/storefront
+git clone https://github.com/littlestjames82-sys/storefront.git
+cd storefront
 node server.js
 ```
 
@@ -77,6 +80,15 @@ not hours, for approval before sending at volume.
 redeploy/restart. Fine for demos; attach a persistent disk (paid) or back up the
 DB before going to production.
 
+## Status
+
+Built and live: the demo storefront runs at
+[storefront-ghost-dev.netlify.app](https://storefront-ghost-dev.netlify.app),
+and this repo is the working implementation — the Node server (`server.js`),
+the admin leads inbox, the Google review tools, and the Twilio voice/SMS
+webhooks described above. Deployment configs for both Netlify (`netlify.toml`,
+`netlify/`) and Render (`render.yaml`) are included.
+
 ## Roadmap
 
 - **Stripe billing** — $29–39/mo subscriptions per storefront, self-serve signup.
@@ -86,3 +98,18 @@ DB before going to production.
 - **Persistent storage** — hosted Postgres/Turso instead of a local SQLite file.
 - **Smarter missed-call handling** — only text back on no-answer/busy via Twilio
   `Dial` status callbacks instead of every inbound call.
+
+## More from Ghost Developer Studio
+
+Ghost Developer Studio builds developer tools, AI-agent safety software, apps,
+and websites — and sells by showing working software.
+
+- **Roadmap board** — where every studio product stands, on one page:
+  https://github.com/littlestjames82-sys/ghost-roadmaps
+- [Agent Seatbelt](https://github.com/littlestjames82-sys/agent-seatbelt) — deterministic guardrails for AI coding agents
+- [GhostGuard](https://github.com/littlestjames82-sys/ghostguard) — record-first governance gateway for AI agents
+- [Ghost Hands](https://github.com/littlestjames82-sys/ghost-hands) — governed, recorded, replayable agent hands
+- [GhostBus](https://github.com/littlestjames82-sys/ghostbus) — agent-to-agent message bus, exposed as an MCP server
+- [Ghost Bridge](https://github.com/littlestjames82-sys/ghost-bridge) — MCP bridge + relay for handing tasks between agents
+- [GhostChat](https://github.com/littlestjames82-sys/ghostchat) — live chat & omnichannel inbox for small businesses
+- [Decksmith](https://github.com/littlestjames82-sys/decksmith) — cyberdeck design & fabrication studio
