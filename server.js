@@ -149,7 +149,7 @@ async function route(req, res) {
       slug: 'ghost-developer-studio',
       business_name: 'Ghost Developer Studio',
       trade: 'Software studio',
-      phone: '(423) 215-9386',
+      phone: '(423) 408-2150',
       email: 'gdev6145@gmail.com',
       tagline: 'One-page websites for local trades.',
       about: 'Ghost Developer Studio builds the Storefront product. Signups from the sales page land here as leads.',
