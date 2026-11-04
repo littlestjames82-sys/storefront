@@ -1,4 +1,5 @@
 # Storefront 👻
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 One-page websites for trades businesses — by **Ghost Developer Studio**.
 
